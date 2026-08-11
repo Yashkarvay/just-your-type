@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Track Your Order — Just Your Type</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:#070707;
+  color:#f4efe7;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+.container{
+  max-width:700px;
+  margin:auto;
+  padding:40px 20px;
+}
+
+.logo{
+  text-align:center;
+  font-family:Georgia,serif;
+  font-size:42px;
+  font-weight:bold;
+  letter-spacing:4px;
+  margin-bottom:8px;
+}
+
+.subtitle{
+  text-align:center;
+  color:#999;
+  margin-bottom:45px;
+}
+
+.card{
+  background:#111;
+  border:1px solid #2a2a2a;
+  border-radius:18px;
+  padding:28px;
+}
+
+h1{
+  margin-top:0;
+  font-family:Georgia,serif;
+  font-weight:400;
+  font-size:42px;
+}
+
+label{
+  display:block;
+  font-size:12px;
+  font-weight:bold;
+  letter-spacing:.12em;
+  margin-bottom:8px;
+  color:#aaa;
+}
+
+input{
+  width:100%;
+  padding:15px;
+  background:#080808;
+  color:#fff;
+  border:1px solid #444;
+  border-radius:10px;
+  outline:none;
+  margin-bottom:14px;
+}
+
+input:focus{
+  border-color:#e9c58f;
+}
+
+button{
+  width:100%;
+  padding:15px;
+  border:0;
+  border-radius:10px;
+  background:#e9c58f;
+  color:#111;
+  font-weight:800;
+  cursor:pointer;
+}
+
+button:disabled{
+  opacity:.6;
+}
+
+.message{
+  margin-top:15px;
+  color:#ff8e8e;
+}
+
+.order{
+  margin-top:25px;
+  display:none;
+}
+
+.order-header{
+  border-bottom:1px solid #333;
+  padding-bottom:18px;
+  margin-bottom:25px;
+}
+
+.order-id{
+  font-size:20px;
+  font-weight:bold;
+}
+
+.status{
+  display:inline-block;
+  margin-top:10px;
+  background:#292929;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.timeline{
+  position:relative;
+  margin-top:25px;
+}
+
+.step{
+  display:flex;
+  gap:15px;
+  min-height:65px;
+}
+
+.dot{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#333;
+  border:2px solid #555;
+  flex-shrink:0;
+  margin-top:2px;
+}
+
+.step.active .dot{
+  background:#e9c58f;
+  border-color:#e9c58f;
+}
+
+.step.current .dot{
+  box-shadow:0 0 0 5px rgba(233,197,143,.15);
+}
+
+.step-content{
+  padding-bottom:18px;
+}
+
+.step-title{
+  font-weight:bold;
+}
+
+.step-text{
+  color:#777;
+  font-size:13px;
+  margin-top:5px;
+}
+
+.info{
+  margin-top:25px;
+  background:#0b0b0b;
+  border:1px solid #252525;
+  border-radius:12px;
+  padding:18px;
+}
+
+.info-row{
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  padding:8px 0;
+  border-bottom:1px solid #222;
+}
+
+.info-row:last-child{
+  border-bottom:0;
+}
+
+.muted{
+  color:#888;
+}
+
+@media(max-width:600px){
+  .logo{
+    font-size:32px;
+  }
+
+  h1{
+    font-size:34px;
+  }
+
+  .card{
+    padding:20px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="logo">JYT</div>
+
+  <div class="subtitle">
+    JUST YOUR TYPE — WEAR WHAT DEFINES YOU.
+  </div>
+
+  <div class="card">
+
+    <h1>Track Your Order</h1>
+
+    <p class="muted">
+      Enter the Order ID you received after placing your order.
+    </p>
+
+    <label>ORDER ID</label>
+
+    <input
+      id="orderId"
+      type="text"
+      placeholder="Example: JYT-20260812-123456"
+    >
+
+    <button id="trackBtn" onclick="trackOrder()">
+      TRACK ORDER
+    </button>
+
+    <div id="message" class="message"></div>
+
+    <div id="orderResult" class="order">
+
+      <div class="order-header">
+
+        <div class="order-id" id="displayOrderId">
+          —
+        </div>
+
+        <div class="status" id="displayStatus">
+          —
+        </div>
+
+      </div>
+
+      <div class="timeline">
+
+        <div class="step" id="step-NEW">
+          <div class="dot"></div>
+          <div class="step-content">
+            <div class="step-title">Order Placed</div>
+            <div class="step-text">
+              Your order has been received.
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-CONFIRMED">
+          <div class="dot"></div>
+          <div class="step-content">
+            <div class="step-title">Confirmed</div>
+            <div class="step-text">
+              Your order has been confirmed.
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-PRINTING">
+          <div class="dot"></div>
+          <div class="step-content">
+            <div class="step-title">Printing</div>
+            <div class="step-text">
+              Your T-shirt is being prepared.
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-READY">
+          <div class="dot"></div>
+          <div class="step-content">
+            <div class="step-title">Ready</div>
+            <div class="step-text">
+              Your order is ready for shipping.
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-SHIPPED">
+          <div class="dot"></div>
+          <div class="step-content">
+            <div class="step-title">Shipped</div>
+            <div class="step-text">
+              Your order is on the way.
+            </div>
+          </div>
+        </div>
+
+        <div class="step" id="step-COMPLETED">
+          <div class="dot"></div>
+          <div class="step-content">
+            <div class="step-title">Completed</div>
+            <div class="step-text">
+              Order delivered successfully.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="info">
+
+        <div class="info-row">
+          <span class="muted">Product</span>
+          <span id="productInfo">—</span>
+        </div>
+
+        <div class="info-row">
+          <span class="muted">Quantity</span>
+          <span id="quantityInfo">—</span>
+        </div>
+
+        <div class="info-row">
+          <span class="muted">Total</span>
+          <span id="totalInfo">—</span>
+        </div>
+
+        <div class="info-row">
+          <span class="muted">Payment</span>
+          <span id="paymentInfo">—</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+
+<script>
+
+const firebaseConfig = {
+
+  apiKey:'AIzaSyDAmkpdcpG16BXkBrB1KcS2lNU99frL0h8',
+
+  authDomain:'just-your-type.firebaseapp.com',
+
+  projectId:'just-your-type',
+
+  storageBucket:'just-your-type.firebasestorage.app',
+
+  messagingSenderId:'549453330593',
+
+  appId:'1:549453330593:web:f7c76ab68b5e518fe518e0'
+
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+
+
+const statusOrder = [
+  'NEW',
+  'CONFIRMED',
+  'PRINTING',
+  'READY',
+  'SHIPPED',
+  'COMPLETED'
+];
+
+
+async function trackOrder(){
+
+  const input = document
+    .getElementById('orderId')
+    .value
+    .trim();
+
+  const message = document.getElementById('message');
+
+  const result = document.getElementById('orderResult');
+
+  const btn = document.getElementById('trackBtn');
+
+
+  result.style.display = 'none';
+
+  message.textContent = '';
+
+
+  if(!input){
+
+    message.textContent = 'Please enter your Order ID.';
+
+    return;
+
+  }
+
+
+  btn.disabled = true;
+
+  btn.textContent = 'CHECKING...';
+
+
+  try{
+
+    const doc = await db
+      .collection('orders')
+      .doc(input)
+      .get();
+
+
+    if(!doc.exists){
+
+      message.textContent =
+        'Order not found. Please check your Order ID.';
+
+      return;
+
+    }
+
+
+    const order = doc.data();
+
+    const status = order.status || 'NEW';
+
+    const product = order.product || {};
+
+
+
+    document.getElementById('displayOrderId')
+      .textContent = order.orderId || input;
+
+
+    document.getElementById('displayStatus')
+      .textContent = status;
+
+
+    document.getElementById('productInfo')
+      .textContent =
+      `${product.colour || '—'} · ${product.size || '—'}`;
+
+
+    document.getElementById('quantityInfo')
+      .textContent =
+      product.quantity || 1;
+
+
+    document.getElementById('totalInfo')
+      .textContent =
+      '₹' + Number(product.totalAmount || 0)
+      .toLocaleString('en-IN');
+
+
+    document.getElementById('paymentInfo')
+      .textContent =
+      order.paymentStatus || 'PENDING';
+
+
+    updateTimeline(status);
+
+
+    result.style.display = 'block';
+
+  }
+
+  catch(error){
+
+    console.error(error);
+
+    message.textContent =
+      'Unable to check order. Please try again.';
+
+  }
+
+  finally{
+
+    btn.disabled = false;
+
+    btn.textContent = 'TRACK ORDER';
+
+  }
+
+}
+
+
+function updateTimeline(currentStatus){
+
+  const currentIndex =
+    statusOrder.indexOf(currentStatus);
+
+
+  statusOrder.forEach((status,index)=>{
+
+    const step =
+      document.getElementById('step-' + status);
+
+    step.classList.remove(
+      'active',
+      'current'
+    );
+
+
+    if(index <= currentIndex){
+
+      step.classList.add('active');
+
+    }
+
+
+    if(index === currentIndex){
+
+      step.classList.add('current');
+
+    }
+
+  });
+
+}
+
+
+document
+  .getElementById('orderId')
+  .addEventListener('keydown',function(e){
+
+    if(e.key === 'Enter'){
+
+      trackOrder();
+
+    }
+
+  });
+
+</script>
+
+</body>
+</html>
