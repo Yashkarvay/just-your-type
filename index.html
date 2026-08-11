@@ -118,7 +118,7 @@ async function submitDesign(e){
     document.querySelector('#customModal form').reset();
     document.getElementById('designPreview').style.display='none';
     closeModal('customModal');
-    notify(`Order ${orderId} received! We will contact you for confirmation.`);
+    window.location.href = 'track.html?order=' + encodeURIComponent(orderId);
   }catch(err){
     console.error('JYT order error:',err);
     notify('Order could not be submitted. Please try again.');
