@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JYT — My Account</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#070707;
+  color:#f4efe7;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+.wrap{
+  max-width:900px;
+  margin:auto;
+  padding:40px 20px;
+}
+
+.logo{
+  text-align:center;
+  font-family:Georgia,serif;
+  font-size:48px;
+  font-weight:700;
+  margin-bottom:5px;
+}
+
+.tag{
+  text-align:center;
+  color:#9c9c9c;
+  margin-bottom:40px;
+}
+
+.card{
+  background:#111;
+  border:1px solid #292929;
+  border-radius:18px;
+  padding:28px;
+  margin-bottom:20px;
+}
+
+h1,h2,h3{
+  margin-top:0;
+}
+
+input{
+  width:100%;
+  padding:14px;
+  margin:7px 0 16px;
+  border-radius:9px;
+  border:1px solid #444;
+  background:#090909;
+  color:#fff;
+  font-size:16px;
+}
+
+button{
+  border:0;
+  border-radius:9px;
+  padding:13px 20px;
+  cursor:pointer;
+  font-weight:700;
+  font-size:15px;
+}
+
+.gold{
+  background:#e9c58f;
+  color:#111;
+}
+
+.dark{
+  background:#222;
+  color:#fff;
+  border:1px solid #444;
+}
+
+.btn-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.muted{
+  color:#999;
+}
+
+.error{
+  color:#ff8585;
+  margin-top:12px;
+}
+
+.success{
+  color:#a8e6ad;
+  margin-top:12px;
+}
+
+.order{
+  border:1px solid #292929;
+  background:#0b0b0b;
+  border-radius:14px;
+  padding:20px;
+  margin-top:14px;
+}
+
+.order-id{
+  font-weight:700;
+  font-size:18px;
+  margin-bottom:8px;
+}
+
+.pill{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#252525;
+  font-size:12px;
+  font-weight:700;
+  margin-right:5px;
+}
+
+.hidden{
+  display:none;
+}
+
+.empty{
+  text-align:center;
+  color:#888;
+  padding:30px 10px;
+}
+
+a{
+  color:#e9c58f;
+  text-decoration:none;
+}
+
+@media(max-width:600px){
+  .wrap{padding:25px 14px}
+  .logo{font-size:40px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <div class="logo">JYT</div>
+  <div class="tag">JUST YOUR TYPE — WEAR WHAT DEFINES YOU.</div>
+
+  <!-- LOGIN / REGISTER -->
+  <div id="authBox" class="card">
+
+    <h1 id="authTitle">My Account</h1>
+
+    <p class="muted">
+      Login to view your orders and track their status.
+    </p>
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="Enter your email">
+
+    <label>Password</label>
+    <input id="password" type="password" placeholder="Enter password">
+
+    <div class="btn-row">
+      <button class="gold" onclick="login()">LOGIN</button>
+      <button class="dark" onclick="register()">CREATE ACCOUNT</button>
+    </div>
+
+    <div id="authMsg"></div>
+
+  </div>
+
+
+  <!-- ACCOUNT -->
+  <div id="accountBox" class="hidden">
+
+    <div class="card">
+
+      <h1>My Orders</h1>
+
+      <p class="muted">
+        Logged in as <span id="userEmail"></span>
+      </p>
+
+      <button class="dark" onclick="logout()">LOG OUT</button>
+
+    </div>
+
+    <div class="card">
+
+      <h2>Your Orders</h2>
+
+      <div id="orders">
+        <div class="empty">Loading orders...</div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDAmkpdcpdcpG16BXkBrBlKcS2lNU99frL0h8",
+  authDomain: "just-your-type.firebaseapp.com",
+  projectId: "just-your-type",
+  storageBucket: "just-your-type.firebasestorage.app",
+  messagingSenderId: "549453330593",
+  appId: "1:549453330593:web:f7c76ab68b5e518fe518fe0"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+
+auth.onAuthStateChanged(user => {
+
+  if(user){
+
+    document.getElementById("authBox").classList.add("hidden");
+    document.getElementById("accountBox").classList.remove("hidden");
+
+    document.getElementById("userEmail").textContent = user.email;
+
+    loadOrders(user.uid);
+
+  }else{
+
+    document.getElementById("authBox").classList.remove("hidden");
+    document.getElementById("accountBox").classList.add("hidden");
+
+  }
+
+});
+
+
+async function register(){
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("authMsg");
+
+  if(!email || !password){
+    msg.className = "error";
+    msg.textContent = "Please enter email and password.";
+    return;
+  }
+
+  if(password.length < 6){
+    msg.className = "error";
+    msg.textContent = "Password must be at least 6 characters.";
+    return;
+  }
+
+  msg.className = "muted";
+  msg.textContent = "Creating account...";
+
+  try{
+
+    await auth.createUserWithEmailAndPassword(email,password);
+
+    msg.className = "success";
+    msg.textContent = "Account created successfully.";
+
+  }catch(e){
+
+    msg.className = "error";
+    msg.textContent = e.message;
+
+  }
+
+}
+
+
+async function login(){
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("authMsg");
+
+  if(!email || !password){
+
+    msg.className = "error";
+    msg.textContent = "Please enter email and password.";
+    return;
+
+  }
+
+  msg.className = "muted";
+  msg.textContent = "Signing in...";
+
+  try{
+
+    await auth.signInWithEmailAndPassword(email,password);
+
+    msg.textContent = "";
+
+  }catch(e){
+
+    msg.className = "error";
+    msg.textContent = e.message;
+
+  }
+
+}
+
+
+function logout(){
+
+  auth.signOut();
+
+}
+
+
+async function loadOrders(uid){
+
+  const box = document.getElementById("orders");
+
+  box.innerHTML =
+    '<div class="empty">Loading orders...</div>';
+
+  try{
+
+    const snap = await db
+      .collection("orders")
+      .where("userId","==",uid)
+      .get();
+
+    if(snap.empty){
+
+      box.innerHTML =
+        '<div class="empty">No orders found for this account.</div>';
+
+      return;
+
+    }
+
+    let orders = [];
+
+    snap.forEach(doc => {
+
+      orders.push({
+        id:doc.id,
+        ...doc.data()
+      });
+
+    });
+
+    orders.sort((a,b) => {
+
+      const aTime = a.createdAt?.toMillis
+        ? a.createdAt.toMillis()
+        : 0;
+
+      const bTime = b.createdAt?.toMillis
+        ? b.createdAt.toMillis()
+        : 0;
+
+      return bTime - aTime;
+
+    });
+
+
+    box.innerHTML = orders.map(o => {
+
+      const orderId = o.orderId || o.id;
+      const status = o.status || "NEW";
+      const payment = o.paymentStatus || "PENDING";
+      const product = o.product || {};
+
+      return `
+
+        <div class="order">
+
+          <div class="order-id">
+            ${escapeHtml(orderId)}
+          </div>
+
+          <span class="pill">
+            STATUS: ${escapeHtml(status)}
+          </span>
+
+          <span class="pill">
+            PAYMENT: ${escapeHtml(payment)}
+          </span>
+
+          <p class="muted">
+            ${escapeHtml(product.type || "CUSTOM T-SHIRT")}
+            ·
+            ${escapeHtml(product.colour || "")}
+            ·
+            ${escapeHtml(product.size || "")}
+          </p>
+
+          <p>
+            Total:
+            <b>₹${escapeHtml(
+              String(product.totalAmount || 0)
+            )}</b>
+          </p>
+
+          <a href="track.html?order=${encodeURIComponent(orderId)}">
+            TRACK THIS ORDER →
+          </a>
+
+        </div>
+
+      `;
+
+    }).join("");
+
+  }catch(e){
+
+    box.innerHTML =
+      '<div class="error">Could not load orders: ' +
+      escapeHtml(e.message) +
+      '</div>';
+
+  }
+
+}
+
+
+function escapeHtml(v){
+
+  return String(v ?? "").replace(
+    /[&<>"']/g,
+    m => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#039;"
+    }[m])
+  );
+
+}
+
+</script>
+
+</body>
+</html>
