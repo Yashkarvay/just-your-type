@@ -548,6 +548,18 @@ document
 
   });
 
+
+  const params = new URLSearchParams(window.location.search);
+const orderFromUrl = params.get('order');
+
+if(orderFromUrl){
+
+  document.getElementById('orderId').value = orderFromUrl;
+
+  trackOrder();
+
+}
+
 </script>
 
 </body>
