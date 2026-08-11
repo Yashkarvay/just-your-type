@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JYT Admin — Orders</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0b0b;color:#f4f1e9;font-family:Arial,Helvetica,sans-serif}
+button,input,select{font:inherit}
+.wrap{max-width:1200px;margin:auto;padding:28px}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2b2b2b;padding-bottom:18px;margin-bottom:24px}
+.logo{font-size:24px;font-weight:800;letter-spacing:2px}
+.muted{color:#999}
+.btn{border:0;border-radius:10px;padding:12px 18px;cursor:pointer;font-weight:700}
+.gold{background:#d8c69c;color:#111}
+.dark{background:#222;color:#fff;border:1px solid #444}
+.card{background:#151515;border:1px solid #2b2b2b;border-radius:16px;padding:22px;margin-bottom:18px}
+.login{max-width:430px;margin:12vh auto}
+.login h1{margin-top:0}
+input,select{width:100%;padding:13px;border-radius:9px;border:1px solid #444;background:#0f0f0f;color:#fff;margin:7px 0 14px}
+.hidden{display:none}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.toolbar select{width:auto;min-width:180px;margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat{background:#151515;border:1px solid #2b2b2b;border-radius:14px;padding:16px}
+.stat b{font-size:26px;display:block;margin-bottom:5px}
+.order{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start}
+.order h3{margin:0 0 7px}
+.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#262626;font-size:12px;font-weight:700;margin-right:5px}
+.detail{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;color:#ccc;font-size:14px;margin-top:15px}
+.detail div{background:#101010;padding:10px;border-radius:8px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.actions select{width:170px;margin:0}
+.empty{text-align:center;padding:50px;color:#888}
+.error{color:#ff8e8e;margin:8px 0}
+@media(max-width:800px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .order{grid-template-columns:1fr}
+  .actions{justify-content:flex-start}
+  .detail{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="loginView" class="wrap login">
+  <div class="card">
+    <div class="logo">JYT ADMIN</div>
+    <p class="muted">Just Your Type — Order Management</p>
+    <h1>Sign in</h1>
+
+    <label>Email</label>
+    <input id="email" type="email" placeholder="Admin email">
+
+    <label>Password</label>
+    <input id="password" type="password" placeholder="Password">
+
+    <button class="btn gold" style="width:100%" onclick="login()">LOGIN</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<div id="appView" class="wrap hidden">
+  <header>
+    <div>
+      <div class="logo">JYT ADMIN</div>
+      <div class="muted">Order Management</div>
+    </div>
+    <button class="btn dark" onclick="logout()">LOG OUT</button>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><b id="totalCount">0</b><span class="muted">Total Orders</span></div>
+    <div class="stat"><b id="newCount">0</b><span class="muted">New</span></div>
+    <div class="stat"><b id="pendingCount">0</b><span class="muted">Payment Pending</span></div>
+    <div class="stat"><b id="valueCount">₹0</b><span class="muted">Order Value</span></div>
+  </div>
+
+  <div class="toolbar">
+    <select id="statusFilter" onchange="renderOrders()">
+      <option value="ALL">All statuses</option>
+      <option value="NEW">NEW</option>
+      <option value="CONFIRMED">CONFIRMED</option>
+      <option value="PRINTING">PRINTING</option>
+      <option value="READY">READY</option>
+      <option value="SHIPPED">SHIPPED</option>
+      <option value="COMPLETED">COMPLETED</option>
+      <option value="CANCELLED">CANCELLED</option>
+    </select>
+    <button class="btn dark" onclick="loadOrders()">REFRESH</button>
+  </div>
+
+  <div id="orders"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDAmpckpdcpG16BXkBrB1KcS2LNU99frL0h8",
+  authDomain: "just-your-type.firebaseapp.com",
+  projectId: "just-your-type",
+  storageBucket: "just-your-type.firebasestorage.app",
+  messagingSenderId: "549453330593",
+  appId: "1:549453330593:web:f7c76ab68b5e518fe518e0"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+let orders = [];
+
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    document.getElementById("loginView").classList.add("hidden");
+    document.getElementById("appView").classList.remove("hidden");
+    loadOrders();
+  } else {
+    document.getElementById("loginView").classList.remove("hidden");
+    document.getElementById("appView").classList.add("hidden");
+  }
+});
+
+async function login() {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("loginMsg");
+
+  if (!email || !password) {
+    msg.className = "error";
+    msg.textContent = "Email and password required.";
+    return;
+  }
+
+  msg.className = "muted";
+  msg.textContent = "Signing in...";
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    msg.textContent = "";
+  } catch (e) {
+    msg.className = "error";
+    msg.textContent = e.message;
+  }
+}
+
+function logout() {
+  auth.signOut();
+}
+
+async function loadOrders() {
+  const box = document.getElementById("orders");
+  box.innerHTML = '<div class="card empty">Loading orders...</div>';
+
+  try {
+    const snap = await db.collection("orders").orderBy("createdAt", "desc").get();
+
+    orders = snap.docs.map(function(doc) {
+      return Object.assign({ id: doc.id }, doc.data());
+    });
+
+    renderOrders();
+  } catch (e) {
+    box.innerHTML = '<div class="card error">Could not load orders: ' +
+      escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderOrders() {
+  const filter = document.getElementById("statusFilter").value;
+  const shown = orders.filter(function(o) {
+    return filter === "ALL" || (o.status || "NEW") === filter;
+  });
+
+  const total = orders.length;
+  const newCount = orders.filter(function(o) {
+    return (o.status || "NEW") === "NEW";
+  }).length;
+
+  const pending = orders.filter(function(o) {
+    return (o.paymentStatus || "PENDING") === "PENDING";
+  }).length;
+
+  const value = orders.reduce(function(sum, o) {
+    return sum + Number((o.product && o.product.totalAmount) || 0);
+  }, 0);
+
+  document.getElementById("totalCount").textContent = total;
+  document.getElementById("newCount").textContent = newCount;
+  document.getElementById("pendingCount").textContent = pending;
+  document.getElementById("valueCount").textContent =
+    "₹" + value.toLocaleString("en-IN");
+
+  const box = document.getElementById("orders");
+
+  if (!shown.length) {
+    box.innerHTML = '<div class="card empty">No orders found.</div>';
+    return;
+  }
+
+  box.innerHTML = shown.map(function(o) {
+    const date = o.createdAt && o.createdAt.toDate
+      ? o.createdAt.toDate().toLocaleString("en-IN")
+      : "—";
+
+    const c = o.customer || {};
+    const p = o.product || {};
+    const d = o.design || {};
+
+    const status = o.status || "NEW";
+    const payment = o.paymentStatus || "PENDING";
+
+    return `
+      <div class="card order">
+        <div>
+          <h3>${escapeHtml(o.orderId || o.id)}</h3>
+
+          <span class="pill">${escapeHtml(status)}</span>
+          <span class="pill">PAYMENT: ${escapeHtml(payment)}</span>
+
+          <div class="detail">
+            <div>
+              <b>Customer</b><br>
+              ${escapeHtml(c.name || "—")}<br>
+              ${escapeHtml(c.mobile || "—")}
+            </div>
+
+            <div>
+              <b>Address</b><br>
+              ${escapeHtml(c.address || "—")}
+            </div>
+
+            <div>
+              <b>Product</b><br>
+              ${escapeHtml(p.type || "CUSTOM T-SHIRT")} ·
+              ${escapeHtml(p.colour || "—")} ·
+              ${escapeHtml(p.size || "—")}
+            </div>
+
+            <div>
+              <b>Quantity / Total</b><br>
+              ${escapeHtml(String(p.quantity || 1))} ×
+              ₹${escapeHtml(String(p.unitPrice || 400))} =
+              ₹${escapeHtml(String(p.totalAmount || 0))}
+            </div>
+
+            <div>
+              <b>Design</b><br>
+              ${escapeHtml(d.fileName || "No file")}<br>
+              ${escapeHtml(d.uploadStatus || "—")}
+            </div>
+
+            <div>
+              <b>Created</b><br>
+              ${escapeHtml(date)}
+            </div>
+
+            <div style="grid-column:1/-1">
+              <b>Notes</b><br>
+              ${escapeHtml(o.notes || "—")}
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <select onchange="changeStatus('${escapeHtml(o.id)}', this.value)">
+            ${["NEW","CONFIRMED","PRINTING","READY","SHIPPED","COMPLETED","CANCELLED"]
+              .map(function(s) {
+                return '<option value="' + s + '"' +
+                  (status === s ? " selected" : "") + '>' + s + '</option>';
+              }).join("")}
+          </select>
+
+          <select onchange="changePayment('${escapeHtml(o.id)}', this.value)">
+            ${["PENDING","PAID","REFUNDED"]
+              .map(function(s) {
+                return '<option value="' + s + '"' +
+                  (payment === s ? " selected" : "") + '>' + s + '</option>';
+              }).join("")}
+          </select>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function changeStatus(id, status) {
+  try {
+    await db.collection("orders").doc(id).update({
+      status: status
+    });
+
+    const order = orders.find(function(x) {
+      return x.id === id;
+    });
+
+    if (order) order.status = status;
+
+    renderOrders();
+  } catch (e) {
+    alert("Could not update status: " + e.message);
+    loadOrders();
+  }
+}
+
+async function changePayment(id, paymentStatus) {
+  try {
+    await db.collection("orders").doc(id).update({
+      paymentStatus: paymentStatus
+    });
+
+    const order = orders.find(function(x) {
+      return x.id === id;
+    });
+
+    if (order) order.paymentStatus = paymentStatus;
+
+    renderOrders();
+  } catch (e) {
+    alert("Could not update payment: " + e.message);
+    loadOrders();
+  }
+}
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, function(char) {
+    return {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[char];
+  });
+}
+</script>
+
+</body>
+</html>
