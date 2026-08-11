@@ -113,6 +113,7 @@ footer{background:#050505;color:#fff;padding:55px 5vw 30px}.footer-grid{display:
 <div class="modal" id="customModal"><div class="modal-box"><button class="close" onclick="closeModal('customModal')">×</button><div class="eyebrow">MAKE IT YOURS</div><h2 style="font-size:58px;margin-bottom:10px"><strong>Place your order.</strong></h2><p class="intro" style="font-size:15px">Submit your design and details. No online payment is required now. We will contact you to confirm the order and payment.</p><form class="form" onsubmit="submitDesign(event)"><label>T-shirt colour<select id="colourSelect"></select></label><label>Size<select id="sizeSelect"><option>S</option><option>M</option><option selected>L</option><option>XL</option><option>XXL</option></select></label><label>Quantity<input id="quantityInput" type="number" min="1" max="20" value="1" required></label><label>Your name<input id="nameInput" required placeholder="Your name"></label><label>Mobile number<input id="mobileInput" type="tel" inputmode="numeric" required placeholder="10-digit mobile number" pattern="[0-9]{10}"></label><label>Full delivery address<textarea id="addressInput" rows="3" required placeholder="House no., street, city, state, PIN"></textarea></label><label>Notes<textarea id="notesInput" rows="3" placeholder="Print placement, quantity, etc."></textarea></label><div class="upload"><b>DESIGN FILE (TEST MODE)</b><p style="font-size:13px;color:#888;margin:8px 0">For now, we are testing the order system. Your design file will not be uploaded to Firebase until Storage is enabled.</p><input id="designFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewDesign(event)"><img id="designPreview" class="preview" alt="Design preview"></div><button class="btn gold" id="submitOrderBtn" type="submit">PLACE ORDER →</button></form></div></div>
 <div class="toast" id="toast"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 const products=[
@@ -137,7 +138,8 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
-
+const auth = firebase.auth();
+  
 function makeOrderId(){
   const d=new Date(), pad=n=>String(n).padStart(2,'0');
   return `JYT-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${Date.now().toString().slice(-6)}`;
@@ -147,6 +149,14 @@ async function submitDesign(e){
   e.preventDefault();
   const file=document.getElementById('designFile').files[0];
   const btn=document.getElementById('submitOrderBtn');
+
+  const user = auth.currentUser;
+
+if(!user){
+  notify('Please login to your account before placing an order.');
+  window.location.href = 'account.html';
+  return;
+}
 
   const mobile=document.getElementById('mobileInput').value.trim();
   if(!/^[0-9]{10}$/.test(mobile)){notify('Please enter a valid 10-digit mobile number.');return}
@@ -168,6 +178,7 @@ async function submitDesign(e){
       orderId,
       status:'NEW',
       paymentStatus:'PENDING',
+      userId:user.uid,
       customer:{name,mobile,address},
       product:{type:'CUSTOM T-SHIRT',colour,size,quantity,unitPrice:400,totalAmount},
       notes,
