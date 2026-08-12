@@ -128,13 +128,13 @@ function closeModal(id){document.getElementById(id).classList.remove('show')}
 function previewDesign(e){const f=e.target.files[0],img=document.getElementById('designPreview');if(!f)return;img.src=URL.createObjectURL(f);img.style.display='block'}
 
 // Firebase connection for Just Your Type
-const firebaseConfig={
-  apiKey:'AIzaSyDAmpckpdG16BXkBrB1KcS2LNU99frL0h8',
-  authDomain:'just-your-type.firebaseapp.com',
-  projectId:'just-your-type',
-  storageBucket:'just-your-type.firebasestorage.app',
-  messagingSenderId:'549453330593',
-  appId:'1:549453330593:web:f7c76ab68b5e518fe518e0'
+const firebaseConfig = {
+  apiKey: "AIzaSyDAmkpdcpG16BXkBrBlKcS2lNU99frL0h8",
+  authDomain: "just-your-type.firebaseapp.com",
+  projectId: "just-your-type",
+  storageBucket: "just-your-type.firebasestorage.app",
+  messagingSenderId: "549453330593",
+  appId: "1:549453330593:web:f7c76ab68b5e518fe518e0"
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
