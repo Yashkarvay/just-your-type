@@ -282,7 +282,17 @@ function renderOrders() {
             <div><b>Address</b><br>${escapeHtml(c.address || "—")}</div>
             <div><b>Product</b><br>${escapeHtml(p.type || "CUSTOM T-SHIRT")} · ${escapeHtml(p.colour || "—")} · ${escapeHtml(p.size || "—")}</div>
             <div><b>Quantity / Total</b><br>${escapeHtml(String(p.quantity || 1))} × ₹${escapeHtml(String(p.unitPrice || 400))} = ₹${escapeHtml(String(p.totalAmount || 0))}</div>
-            <div><b>Design</b><br>${escapeHtml(d.fileName || "No file")}<br>${escapeHtml(d.uploadStatus || "—")}</div>
+            <div>
+  <b>Design</b><br>
+  ${d.downloadURL
+    ? `<a href="${escapeAttribute(d.downloadURL)}" target="_blank" rel="noopener">
+         <img src="${escapeAttribute(d.downloadURL)}"
+              style="width:180px;max-height:220px;object-fit:contain;background:#111;border-radius:10px;margin-top:8px;display:block;">
+       </a>
+       <small>${escapeHtml(d.fileName || "Design")}</small>`
+    : `<span>No design uploaded</span>`
+  }
+</div>
             <div><b>Created</b><br>${escapeHtml(date)}</div>
             <div style="grid-column:1/-1"><b>Notes</b><br>${escapeHtml(o.notes || "—")}</div>
           </div>
