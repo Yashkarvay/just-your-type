@@ -236,14 +236,16 @@ const storage = firebase.storage();
   const name = document.getElementById('nameInput').value.trim();
   const address = document.getElementById('addressInput').value.trim();
   
-  const pincode = document.getElementById('pincodeInput').value.trim();
+  const pincode = document.getElementById('pincodeInput').value
+  .replace(/\D/g, '')
+  .slice(0, 6);
 
-  if(!/^[0-9]{6}$/.test(pincode)){
+if(pincode.length !== 6){
   notify('Please enter a valid 6-digit pincode.');
   return;
 }
   
-  const notes = document.getElementById('notesInput').value.trim();
+    const notes = document.getElementById('notesInput').value.trim();
 
   const orderId = makeOrderId();
   const shippingCharge = 80;
