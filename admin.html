@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JYT Admin — Orders</title>
+<title>JYT Admin — Orders & Designs</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0b0b0b;color:#f4f1e9;font-family:Arial,Helvetica,sans-serif}
@@ -15,6 +15,8 @@ header{display:flex;justify-content:space-between;align-items:center;border-bott
 .btn{border:0;border-radius:10px;padding:12px 18px;cursor:pointer;font-weight:700}
 .gold{background:#d8c69c;color:#111}
 .dark{background:#222;color:#fff;border:1px solid #444}
+.green{background:#8fd19e;color:#111}
+.red{background:#b94b4b;color:#fff}
 .card{background:#151515;border:1px solid #2b2b2b;border-radius:16px;padding:22px;margin-bottom:18px}
 .login{max-width:430px;margin:12vh auto}
 .login h1{margin-top:0}
@@ -22,7 +24,7 @@ input,select{width:100%;padding:13px;border-radius:9px;border:1px solid #444;bac
 .hidden{display:none}
 .toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .toolbar select{width:auto;min-width:180px;margin:0}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
 .stat{background:#151515;border:1px solid #2b2b2b;border-radius:14px;padding:16px}
 .stat b{font-size:26px;display:block;margin-bottom:5px}
 .order{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start}
@@ -34,11 +36,26 @@ input,select{width:100%;padding:13px;border-radius:9px;border:1px solid #444;bac
 .actions select{width:170px;margin:0}
 .empty{text-align:center;padding:50px;color:#888}
 .error{color:#ff8e8e;margin:8px 0}
-@media(max-width:800px){
+.design-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.design-card{background:#101010;border:1px solid #2b2b2b;border-radius:14px;overflow:hidden}
+.design-card img{display:block;width:100%;height:240px;object-fit:contain;background:#050505}
+.design-body{padding:16px}
+.design-body h3{margin:0 0 8px;font-size:16px;word-break:break-word}
+.design-meta{font-size:13px;color:#aaa;line-height:1.55}
+.design-actions{display:flex;gap:8px;margin-top:14px}
+.design-actions button{flex:1}
+.section-title{display:flex;justify-content:space-between;align-items:center;gap:10px}
+@media(max-width:900px){
   .stats{grid-template-columns:repeat(2,1fr)}
+  .design-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:800px){
   .order{grid-template-columns:1fr}
   .actions{justify-content:flex-start}
   .detail{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .design-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -47,7 +64,7 @@ input,select{width:100%;padding:13px;border-radius:9px;border:1px solid #444;bac
 <div id="loginView" class="wrap login">
   <div class="card">
     <div class="logo">JYT ADMIN</div>
-    <p class="muted">Just Your Type — Order Management</p>
+    <p class="muted">Just Your Type — Order & Design Management</p>
     <h1>Sign in</h1>
 
     <label>Email</label>
@@ -65,7 +82,7 @@ input,select{width:100%;padding:13px;border-radius:9px;border:1px solid #444;bac
   <header>
     <div>
       <div class="logo">JYT ADMIN</div>
-      <div class="muted">Order Management</div>
+      <div class="muted">Order & Design Management</div>
     </div>
     <button class="btn dark" onclick="logout()">LOG OUT</button>
   </header>
@@ -74,6 +91,7 @@ input,select{width:100%;padding:13px;border-radius:9px;border:1px solid #444;bac
     <div class="stat"><b id="totalCount">0</b><span class="muted">Total Orders</span></div>
     <div class="stat"><b id="newCount">0</b><span class="muted">New</span></div>
     <div class="stat"><b id="pendingCount">0</b><span class="muted">Payment Pending</span></div>
+    <div class="stat"><b id="designCount">0</b><span class="muted">Customer Designs</span></div>
     <div class="stat"><b id="valueCount">₹0</b><span class="muted">Order Value</span></div>
   </div>
 
@@ -88,10 +106,31 @@ input,select{width:100%;padding:13px;border-radius:9px;border:1px solid #444;bac
       <option value="COMPLETED">COMPLETED</option>
       <option value="CANCELLED">CANCELLED</option>
     </select>
-    <button class="btn dark" onclick="loadOrders()">REFRESH</button>
+    <button class="btn dark" onclick="loadOrders();loadDesigns()">REFRESH</button>
   </div>
 
-  <div id="orders"></div>
+  <div class="card">
+    <div class="section-title">
+      <div>
+        <h2 style="margin:0">Customer Designs</h2>
+        <div class="muted">Uploaded designs waiting for admin review</div>
+      </div>
+      <select id="designFilter" onchange="renderDesigns()" style="width:160px;margin:0">
+        <option value="ALL">All</option>
+        <option value="PENDING">PENDING</option>
+        <option value="APPROVED">APPROVED</option>
+        <option value="REJECTED">REJECTED</option>
+      </select>
+    </div>
+    <div id="designs" style="margin-top:18px">
+      <div class="empty">Loading designs...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Orders</h2>
+    <div id="orders"></div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -112,13 +151,24 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+
 let orders = [];
+let designs = [];
 
 auth.onAuthStateChanged(function(user) {
   if (user) {
+    // UI-level admin check. Firestore/Storage rules must also enforce admin access.
+    if (user.email !== "yashbanjara595@gmail.com") {
+      auth.signOut();
+      document.getElementById("loginMsg").className = "error";
+      document.getElementById("loginMsg").textContent = "This account is not authorized for the admin panel.";
+      return;
+    }
+
     document.getElementById("loginView").classList.add("hidden");
     document.getElementById("appView").classList.remove("hidden");
     loadOrders();
+    loadDesigns();
   } else {
     document.getElementById("loginView").classList.remove("hidden");
     document.getElementById("appView").classList.add("hidden");
@@ -154,18 +204,24 @@ function logout() {
 
 async function loadOrders() {
   const box = document.getElementById("orders");
-  box.innerHTML = '<div class="card empty">Loading orders...</div>';
+  box.innerHTML = '<div class="empty">Loading orders...</div>';
 
   try {
-    const snap = await db.collection("orders").orderBy("createdAt", "desc").get();
+    const snap = await db.collection("orders").get();
 
     orders = snap.docs.map(function(doc) {
       return Object.assign({ id: doc.id }, doc.data());
     });
 
+    orders.sort(function(a,b) {
+      const at = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+      const bt = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+      return bt - at;
+    });
+
     renderOrders();
   } catch (e) {
-    box.innerHTML = '<div class="card error">Could not load orders: ' +
+    box.innerHTML = '<div class="error">Could not load orders: ' +
       escapeHtml(e.message) + '</div>';
   }
 }
@@ -192,13 +248,14 @@ function renderOrders() {
   document.getElementById("totalCount").textContent = total;
   document.getElementById("newCount").textContent = newCount;
   document.getElementById("pendingCount").textContent = pending;
+  document.getElementById("designCount").textContent = designs.length;
   document.getElementById("valueCount").textContent =
     "₹" + value.toLocaleString("en-IN");
 
   const box = document.getElementById("orders");
 
   if (!shown.length) {
-    box.innerHTML = '<div class="card empty">No orders found.</div>';
+    box.innerHTML = '<div class="empty">No orders found.</div>';
     return;
   }
 
@@ -210,7 +267,6 @@ function renderOrders() {
     const c = o.customer || {};
     const p = o.product || {};
     const d = o.design || {};
-
     const status = o.status || "NEW";
     const payment = o.paymentStatus || "PENDING";
 
@@ -218,51 +274,17 @@ function renderOrders() {
       <div class="card order">
         <div>
           <h3>${escapeHtml(o.orderId || o.id)}</h3>
-
           <span class="pill">${escapeHtml(status)}</span>
           <span class="pill">PAYMENT: ${escapeHtml(payment)}</span>
 
           <div class="detail">
-            <div>
-              <b>Customer</b><br>
-              ${escapeHtml(c.name || "—")}<br>
-              ${escapeHtml(c.mobile || "—")}
-            </div>
-
-            <div>
-              <b>Address</b><br>
-              ${escapeHtml(c.address || "—")}
-            </div>
-
-            <div>
-              <b>Product</b><br>
-              ${escapeHtml(p.type || "CUSTOM T-SHIRT")} ·
-              ${escapeHtml(p.colour || "—")} ·
-              ${escapeHtml(p.size || "—")}
-            </div>
-
-            <div>
-              <b>Quantity / Total</b><br>
-              ${escapeHtml(String(p.quantity || 1))} ×
-              ₹${escapeHtml(String(p.unitPrice || 400))} =
-              ₹${escapeHtml(String(p.totalAmount || 0))}
-            </div>
-
-            <div>
-              <b>Design</b><br>
-              ${escapeHtml(d.fileName || "No file")}<br>
-              ${escapeHtml(d.uploadStatus || "—")}
-            </div>
-
-            <div>
-              <b>Created</b><br>
-              ${escapeHtml(date)}
-            </div>
-
-            <div style="grid-column:1/-1">
-              <b>Notes</b><br>
-              ${escapeHtml(o.notes || "—")}
-            </div>
+            <div><b>Customer</b><br>${escapeHtml(c.name || "—")}<br>${escapeHtml(c.mobile || "—")}</div>
+            <div><b>Address</b><br>${escapeHtml(c.address || "—")}</div>
+            <div><b>Product</b><br>${escapeHtml(p.type || "CUSTOM T-SHIRT")} · ${escapeHtml(p.colour || "—")} · ${escapeHtml(p.size || "—")}</div>
+            <div><b>Quantity / Total</b><br>${escapeHtml(String(p.quantity || 1))} × ₹${escapeHtml(String(p.unitPrice || 400))} = ₹${escapeHtml(String(p.totalAmount || 0))}</div>
+            <div><b>Design</b><br>${escapeHtml(d.fileName || "No file")}<br>${escapeHtml(d.uploadStatus || "—")}</div>
+            <div><b>Created</b><br>${escapeHtml(date)}</div>
+            <div style="grid-column:1/-1"><b>Notes</b><br>${escapeHtml(o.notes || "—")}</div>
           </div>
         </div>
 
@@ -286,6 +308,102 @@ function renderOrders() {
       </div>
     `;
   }).join("");
+}
+
+async function loadDesigns() {
+  const box = document.getElementById("designs");
+  box.innerHTML = '<div class="empty">Loading designs...</div>';
+
+  try {
+    const snap = await db.collection("customerDesigns").get();
+
+    designs = snap.docs.map(function(doc) {
+      return Object.assign({ id: doc.id }, doc.data());
+    });
+
+    designs.sort(function(a,b) {
+      const at = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+      const bt = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+      return bt - at;
+    });
+
+    renderDesigns();
+    document.getElementById("designCount").textContent = designs.length;
+  } catch (e) {
+    box.innerHTML = '<div class="error">Could not load customer designs: ' +
+      escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderDesigns() {
+  const filter = document.getElementById("designFilter").value;
+
+  const shown = designs.filter(function(d) {
+    return filter === "ALL" || (d.status || "PENDING") === filter;
+  });
+
+  const box = document.getElementById("designs");
+
+  if (!shown.length) {
+    box.innerHTML = '<div class="empty">No customer designs found.</div>';
+    return;
+  }
+
+  box.innerHTML = '<div class="design-grid">' + shown.map(function(d) {
+    const status = d.status || "PENDING";
+    const date = d.createdAt && d.createdAt.toDate
+      ? d.createdAt.toDate().toLocaleString("en-IN")
+      : "—";
+
+    const imageUrl = d.downloadURL || "";
+
+    return `
+      <div class="design-card">
+        ${imageUrl
+          ? `<a href="${escapeAttribute(imageUrl)}" target="_blank" rel="noopener">
+               <img src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(d.fileName || "Customer design")}" loading="lazy">
+             </a>`
+          : `<div class="empty" style="height:240px;padding:80px 10px">No image URL</div>`
+        }
+
+        <div class="design-body">
+          <h3>${escapeHtml(d.fileName || "Unnamed design")}</h3>
+
+          <div class="design-meta">
+            <b>Status:</b> ${escapeHtml(status)}<br>
+            <b>Customer:</b> ${escapeHtml(d.userEmail || "—")}<br>
+            <b>User ID:</b> ${escapeHtml(d.userId || "—")}<br>
+            <b>Size:</b> ${escapeHtml(formatBytes(d.size))}<br>
+            <b>Uploaded:</b> ${escapeHtml(date)}
+          </div>
+
+          <div class="design-actions">
+            <button class="btn green" onclick="changeDesignStatus('${escapeHtml(d.id)}','APPROVED')">APPROVE</button>
+            <button class="btn red" onclick="changeDesignStatus('${escapeHtml(d.id)}','REJECTED')">REJECT</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("") + '</div>';
+}
+
+async function changeDesignStatus(id, status) {
+  try {
+    await db.collection("customerDesigns").doc(id).update({
+      status: status
+    });
+
+    const design = designs.find(function(x) {
+      return x.id === id;
+    });
+
+    if (design) design.status = status;
+
+    renderDesigns();
+  } catch (e) {
+    alert("Could not update design status: " + e.message);
+    loadDesigns();
+  }
 }
 
 async function changeStatus(id, status) {
@@ -326,6 +444,22 @@ async function changePayment(id, paymentStatus) {
   }
 }
 
+function formatBytes(bytes) {
+  const n = Number(bytes || 0);
+  if (!n) return "—";
+  if (n < 1024) return n + " B";
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+  return (n / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function escapeAttribute(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function escapeHtml(value) {
   return String(value == null ? "" : value).replace(/[&<>"']/g, function(char) {
     return {
@@ -338,6 +472,5 @@ function escapeHtml(value) {
   });
 }
 </script>
-
 </body>
 </html>
