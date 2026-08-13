@@ -29,29 +29,15 @@ body{
   background:#111;
   color:#f4efe7;
   font-size:30px;
-  font-weight:300;
-  line-height:1;
   text-decoration:none;
   z-index:1000;
-  transition:.2s ease;
 }
 
 .close-btn:hover{
   background:#e9c58f;
   color:#111;
-  border-color:#e9c58f;
-  transform:rotate(90deg);
 }
 
-@media(max-width:600px){
-  .close-btn{
-    top:14px;
-    right:14px;
-    width:40px;
-    height:40px;
-    font-size:27px;
-  }
-}
 .wrap{
   max-width:900px;
   margin:auto;
@@ -63,7 +49,6 @@ body{
   font-family:Georgia,serif;
   font-size:48px;
   font-weight:700;
-  margin-bottom:5px;
 }
 
 .tag{
@@ -80,9 +65,7 @@ body{
   margin-bottom:20px;
 }
 
-h1,h2,h3{
-  margin-top:0;
-}
+h1,h2,h3{margin-top:0}
 
 input{
   width:100%;
@@ -121,9 +104,7 @@ button{
   flex-wrap:wrap;
 }
 
-.muted{
-  color:#999;
-}
+.muted{color:#999}
 
 .error{
   color:#ff8585;
@@ -159,14 +140,44 @@ button{
   margin-right:5px;
 }
 
-.hidden{
-  display:none;
-}
+.hidden{display:none}
 
 .empty{
   text-align:center;
   color:#888;
   padding:30px 10px;
+}
+
+.upload-box{
+  border:1px dashed #555;
+  border-radius:14px;
+  padding:25px;
+  text-align:center;
+  background:#0b0b0b;
+}
+
+.preview{
+  max-width:100%;
+  max-height:300px;
+  border-radius:12px;
+  margin:15px 0;
+  display:none;
+}
+
+.progress{
+  width:100%;
+  height:8px;
+  background:#292929;
+  border-radius:20px;
+  overflow:hidden;
+  margin-top:15px;
+  display:none;
+}
+
+.progress-bar{
+  width:0%;
+  height:100%;
+  background:#e9c58f;
 }
 
 a{
@@ -183,20 +194,20 @@ a{
 
 <body>
 
-<a href="index.html" class="close-btn" aria-label="Back to website">×</a>
+<a href="index.html" class="close-btn">×</a>
 
-  <div class="wrap">
+<div class="wrap">
 
   <div class="logo">JYT</div>
   <div class="tag">JUST YOUR TYPE — WEAR WHAT DEFINES YOU.</div>
 
-  <!-- LOGIN / REGISTER -->
+  <!-- LOGIN -->
   <div id="authBox" class="card">
 
-    <h1 id="authTitle">My Account</h1>
+    <h1>My Account</h1>
 
     <p class="muted">
-      Login to view your orders and track their status.
+      Login to view your orders and upload your design.
     </p>
 
     <label>Email</label>
@@ -220,7 +231,7 @@ a{
 
     <div class="card">
 
-      <h1>My Orders</h1>
+      <h1>My Account</h1>
 
       <p class="muted">
         Logged in as <span id="userEmail"></span>
@@ -230,6 +241,59 @@ a{
 
     </div>
 
+
+    <!-- CUSTOMER DESIGN UPLOAD -->
+    <div class="card">
+
+      <h2>Upload Your Design</h2>
+
+      <p class="muted">
+        Upload the design you want us to use for your JYT product.
+      </p>
+
+      <div class="upload-box">
+
+        <input
+          id="designFile"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onchange="previewDesign()"
+        >
+
+        <img id="preview" class="preview">
+
+        <button
+          id="uploadBtn"
+          class="gold"
+          onclick="uploadDesign()"
+        >
+          UPLOAD DESIGN
+        </button>
+
+        <div class="progress" id="progressBox">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div id="uploadMsg"></div>
+
+      </div>
+
+    </div>
+
+
+    <!-- CUSTOMER DESIGNS -->
+    <div class="card">
+
+      <h2>My Uploaded Designs</h2>
+
+      <div id="myDesigns">
+        <div class="empty">Loading designs...</div>
+      </div>
+
+    </div>
+
+
+    <!-- ORDERS -->
     <div class="card">
 
       <h2>Your Orders</h2>
@@ -249,11 +313,12 @@ a{
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
 
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDAmkpdcpG16BXkBrBlKcS2lNU99frL0h8",
+  apiKey: "AIzaSyDAmkpdcpG16BXKcS2lNU99frL0h8",
   authDomain: "just-your-type.firebaseapp.com",
   projectId: "just-your-type",
   storageBucket: "just-your-type.firebasestorage.app",
@@ -265,6 +330,7 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 
 auth.onAuthStateChanged(user => {
@@ -277,6 +343,7 @@ auth.onAuthStateChanged(user => {
     document.getElementById("userEmail").textContent = user.email;
 
     loadOrders(user.uid);
+    loadMyDesigns(user.uid);
 
   }else{
 
@@ -360,11 +427,285 @@ async function login(){
 
 
 function logout(){
-
   auth.signOut();
+}
+
+
+/* =========================
+   DESIGN PREVIEW
+========================= */
+
+function previewDesign(){
+
+  const file = document.getElementById("designFile").files[0];
+  const preview = document.getElementById("preview");
+
+  if(!file){
+    preview.style.display = "none";
+    return;
+  }
+
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+}
+
+
+/* =========================
+   UPLOAD DESIGN
+========================= */
+
+function uploadDesign(){
+
+  const user = auth.currentUser;
+  const file = document.getElementById("designFile").files[0];
+
+  const msg = document.getElementById("uploadMsg");
+  const progressBox = document.getElementById("progressBox");
+  const progressBar = document.getElementById("progressBar");
+  const button = document.getElementById("uploadBtn");
+
+  if(!user){
+    msg.className = "error";
+    msg.textContent = "Please login first.";
+    return;
+  }
+
+  if(!file){
+    msg.className = "error";
+    msg.textContent = "Please select a design image.";
+    return;
+  }
+
+  if(file.size > 10 * 1024 * 1024){
+    msg.className = "error";
+    msg.textContent = "Maximum file size is 10 MB.";
+    return;
+  }
+
+  if(!file.type.startsWith("image/")){
+    msg.className = "error";
+    msg.textContent = "Only image files are allowed.";
+    return;
+  }
+
+  button.disabled = true;
+  msg.className = "muted";
+  msg.textContent = "Uploading design...";
+
+  progressBox.style.display = "block";
+  progressBar.style.width = "0%";
+
+
+  const safeName = file.name
+    .replace(/[^a-zA-Z0-9._-]/g,"_");
+
+  const fileName =
+    Date.now() + "_" + safeName;
+
+  const path =
+    "customer-designs/" +
+    user.uid +
+    "/" +
+    fileName;
+
+  const storageRef = storage.ref(path);
+
+  const uploadTask = storageRef.put(file);
+
+
+  uploadTask.on(
+    "state_changed",
+
+    snapshot => {
+
+      const progress =
+        (snapshot.bytesTransferred /
+        snapshot.totalBytes) * 100;
+
+      progressBar.style.width =
+        progress + "%";
+
+    },
+
+    error => {
+
+      console.error(error);
+
+      button.disabled = false;
+      progressBox.style.display = "none";
+
+      msg.className = "error";
+      msg.textContent =
+        "Upload failed: " + error.message;
+
+    },
+
+    async () => {
+
+      try{
+
+        const downloadURL =
+          await uploadTask.snapshot
+            .ref.getDownloadURL();
+
+        await db.collection("customerDesigns").add({
+
+          userId: user.uid,
+
+          userEmail: user.email,
+
+          fileName: file.name,
+
+          storagePath: path,
+
+          downloadURL: downloadURL,
+
+          contentType: file.type,
+
+          size: file.size,
+
+          status: "PENDING",
+
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+
+        });
+
+
+        button.disabled = false;
+
+        progressBox.style.display = "none";
+
+        msg.className = "success";
+        msg.textContent =
+          "Design uploaded successfully!";
+
+        document.getElementById("designFile").value = "";
+
+        document.getElementById("preview").style.display = "none";
+
+        loadMyDesigns(user.uid);
+
+      }catch(e){
+
+        console.error(e);
+
+        button.disabled = false;
+
+        progressBox.style.display = "none";
+
+        msg.className = "error";
+        msg.textContent =
+          "Upload completed but saving design failed: " +
+          e.message;
+
+      }
+
+    }
+  );
 
 }
 
+
+/* =========================
+   LOAD CUSTOMER DESIGNS
+========================= */
+
+async function loadMyDesigns(uid){
+
+  const box =
+    document.getElementById("myDesigns");
+
+  box.innerHTML =
+    '<div class="empty">Loading designs...</div>';
+
+  try{
+
+    const snap = await db
+      .collection("customerDesigns")
+      .where("userId","==",uid)
+      .get();
+
+    if(snap.empty){
+
+      box.innerHTML =
+        '<div class="empty">No designs uploaded yet.</div>';
+
+      return;
+
+    }
+
+    let designs = [];
+
+    snap.forEach(doc => {
+
+      designs.push({
+        id: doc.id,
+        ...doc.data()
+      });
+
+    });
+
+    designs.sort((a,b) => {
+
+      const aTime =
+        a.createdAt?.toMillis
+        ? a.createdAt.toMillis()
+        : 0;
+
+      const bTime =
+        b.createdAt?.toMillis
+        ? b.createdAt.toMillis()
+        : 0;
+
+      return bTime - aTime;
+
+    });
+
+
+    box.innerHTML = designs.map(d => `
+
+      <div class="order">
+
+        <img
+          src="${escapeHtml(d.downloadURL || "")}"
+          style="
+            max-width:100%;
+            max-height:250px;
+            border-radius:12px;
+            display:block;
+            margin-bottom:15px;
+          "
+        >
+
+        <b>${escapeHtml(d.fileName || "Design")}</b>
+
+        <p>
+          <span class="pill">
+            ${escapeHtml(d.status || "PENDING")}
+          </span>
+        </p>
+
+      </div>
+
+    `).join("");
+
+  }catch(e){
+
+    console.error(e);
+
+    box.innerHTML =
+      '<div class="error">Could not load designs: ' +
+      escapeHtml(e.message) +
+      '</div>';
+
+  }
+
+}
+
+
+/* =========================
+   LOAD ORDERS
+========================= */
 
 async function loadOrders(uid){
 
