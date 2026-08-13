@@ -166,8 +166,8 @@ async function submitDesign(e){
     return;
   }
 
-  if(file.size > 10 * 1024 * 1024){
-    notify('Design must be smaller than 10 MB.');
+ if(file.size > 5 * 1024 * 1024){
+    notify('Design must be smaller than 5 MB.');
     return;
   }
 
@@ -205,8 +205,8 @@ async function submitDesign(e){
       '_'
     );
 
-    const storagePath =
-      `order-designs/${orderId}/${safeName}`;
+const storagePath =
+  `orders/${user.uid}/${orderId}_${safeName}`;
 
     const storageRef = storage.ref(storagePath);
 
