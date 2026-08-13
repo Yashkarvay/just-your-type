@@ -110,7 +110,31 @@ footer{background:#050505;color:#fff;padding:55px 5vw 30px}.footer-grid{display:
 
 <div class="modal" id="productModal"><div class="modal-box"><button class="close" onclick="closeModal('productModal')">×</button><div class="product-modal"><img id="modalImg" src="" alt="T-shirt"><div><div class="eyebrow">JUST YOUR TYPE</div><h2 id="modalName" style="font-size:52px;margin-bottom:10px">T-Shirt</h2><p id="modalPrice" class="intro" style="font-size:18px">₹400</p><div class="btn-row"><button class="btn gold" onclick="openCustom()">CUSTOMISE THIS COLOUR</button><button class="btn light" onclick="closeModal('productModal')">CLOSE</button></div></div></div></div></div>
 
-<div class="modal" id="customModal"><div class="modal-box"><button class="close" onclick="closeModal('customModal')">×</button><div class="eyebrow">MAKE IT YOURS</div><h2 style="font-size:58px;margin-bottom:10px"><strong>Place your order.</strong></h2><p class="intro" style="font-size:15px">Submit your design and details. No online payment is required now. We will contact you to confirm the order and payment.</p><form class="form" onsubmit="submitDesign(event)"><label>T-shirt colour<select id="colourSelect"></select></label><label>Size<select id="sizeSelect"><option>S</option><option>M</option><option selected>L</option><option>XL</option><option>XXL</option></select></label><label>Quantity<input id="quantityInput" type="number" min="1" max="20" value="1" required></label><label>Your name<input id="nameInput" required placeholder="Your name"></label><label>Mobile number<input id="mobileInput" type="tel" inputmode="numeric" required placeholder="10-digit mobile number" pattern="[0-9]{10}"></label><label>Full delivery address<textarea id="addressInput" rows="3" required placeholder="House no., street, city, state, PIN"></textarea></label><label>Notes<textarea id="notesInput" rows="3" placeholder="Print placement, quantity, etc."></textarea></label><div class="upload"><b>DESIGN FILE (TEST MODE)</b><p style="font-size:13px;color:#888;margin:8px 0">For now, we are testing the order system. Your design file will not be uploaded to Firebase until Storage is enabled.</p><input id="designFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewDesign(event)"><img id="designPreview" class="preview" alt="Design preview"></div><button class="btn gold" id="submitOrderBtn" type="submit">PLACE ORDER →</button></form></div></div>
+  <div id="orderPriceSummary" style="margin:18px 0;padding:15px;border:1px solid #333;border-radius:10px;">
+  <div style="display:flex;justify-content:space-between;">
+    <span>T-shirt</span>
+    <span id="shirtPrice">₹400</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:8px;">
+    <span>Shipping</span>
+    <span>₹80</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid #333;font-weight:bold;">
+    <span>Order Total</span>
+    <span id="grandTotal">₹480</span>
+  </div>
+</div>
+<div class="modal" id="customModal"><div class="modal-box"><button class="close" onclick="closeModal('customModal')">×</button><div class="eyebrow">MAKE IT YOURS</div><h2 style="font-size:58px;margin-bottom:10px"><strong>Place your order.</strong></h2><p class="intro" style="font-size:15px">Submit your design and details. No online payment is required now. We will contact you to confirm the order and payment.</p><form class="form" onsubmit="submitDesign(event)"><label>T-shirt colour<select id="colourSelect"></select></label><label>Size<select id="sizeSelect"><option>S</option><option>M</option><option selected>L</option><option>XL</option><option>XXL</option></select></label><label>Quantity<input id="quantityInput" type="number" min="1" max="20" value="1" required oninput="updateOrderTotal()"></label><label>Your name<input id="nameInput" required placeholder="Your name"></label><label>Mobile number<input id="mobileInput" type="tel" inputmode="numeric" required placeholder="10-digit mobile number" pattern="[0-9]{10}"></label><label>Full delivery address<textarea id="addressInput" rows="3" required placeholder="House no., street, city, state, PIN"></textarea></label><label>Notes<textarea id="notesInput" rows="3" placeholder="Print placement, quantity, etc."></textarea></label><div class="upload"><b>DESIGN FILE (TEST MODE)</b><p style="font-size:13px;color:#888;margin:8px 0">For now, we are testing the order system. Your design file will not be uploaded to Firebase until Storage is enabled.</p><input id="designFile" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewDesign(event)"><img id="designPreview" class="preview" alt="Design preview"></div><button class="btn gold" id="submitOrderBtn" type="submit">PLACE ORDER →</button></form></div></div>
+  <label>Pincode
+  <input
+    id="pincodeInput"
+    type="text"
+    inputmode="numeric"
+    maxlength="6"
+    required
+    placeholder="6-digit delivery pincode"
+  >
+</label>
 <div class="toast" id="toast"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -147,7 +171,28 @@ const storage = firebase.storage();
   return `JYT-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${Date.now().toString().slice(-6)}`;
 }
 
-async function submitDesign(e){
+  function updateOrderTotal(){
+  const quantity =
+    Math.max(
+      1,
+      Math.min(
+        20,
+        Number(document.getElementById('quantityInput').value) || 1
+      )
+    );
+
+  const shirtTotal = quantity * 400;
+  const shipping = 80;
+  const grandTotal = shirtTotal + shipping;
+
+  document.getElementById('shirtPrice').textContent =
+    '₹' + shirtTotal.toLocaleString('en-IN');
+
+  document.getElementById('grandTotal').textContent =
+    '₹' + grandTotal.toLocaleString('en-IN');
+}
+
+  async function submitDesign(e){
   e.preventDefault();
 
   const file = document.getElementById('designFile').files[0];
@@ -190,10 +235,19 @@ async function submitDesign(e){
   const size = document.getElementById('sizeSelect').value;
   const name = document.getElementById('nameInput').value.trim();
   const address = document.getElementById('addressInput').value.trim();
+  
+  const pincode = document.getElementById('pincodeInput').value.trim();
+
+  if(!/^[0-9]{6}$/.test(pincode)){
+  notify('Please enter a valid 6-digit pincode.');
+  return;
+}
+  
   const notes = document.getElementById('notesInput').value.trim();
 
   const orderId = makeOrderId();
-  const totalAmount = quantity * 400;
+  const shippingCharge = 80;
+const totalAmount = (quantity * 400) + shippingCharge;
 
   btn.disabled = true;
   btn.textContent = 'UPLOADING DESIGN...';
@@ -242,6 +296,7 @@ const storagePath =
         quantity: quantity,
         unitPrice: 400,
         totalAmount: totalAmount
+        shippingCharge: shippingCharge,
       },
 
       notes: notes,
