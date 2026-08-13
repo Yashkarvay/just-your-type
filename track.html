@@ -380,7 +380,7 @@ button:disabled{
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
 <script>
 
@@ -403,9 +403,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 
-const statusOrder = [
+  const statusOrder = [
   'NEW',
   'CONFIRMED',
   'PRINTING',
@@ -417,6 +418,14 @@ const statusOrder = [
 
 async function trackOrder(){
 
+  const user = auth.currentUser;
+
+  if(!user){
+    document.getElementById('message').textContent =
+      'Please login to your account before tracking your order.';
+    return;
+  }
+ 
   const input = document
     .getElementById('orderId')
     .value
@@ -578,14 +587,23 @@ document
   });
 
 
-  const params = new URLSearchParams(window.location.search);
+ const params = new URLSearchParams(window.location.search);
 const orderFromUrl = params.get('order');
 
 if(orderFromUrl){
 
   document.getElementById('orderId').value = orderFromUrl;
 
-  trackOrder();
+  auth.onAuthStateChanged(function(user){
+
+    if(user){
+      trackOrder();
+    }else{
+      document.getElementById('message').textContent =
+        'Please login to your account before tracking your order.';
+    }
+
+  });
 
 }
 
