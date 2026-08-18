@@ -278,6 +278,104 @@ const storagePath =
 
     const downloadURL =
       await uploadSnap.ref.getDownloadURL();
+    
+        // CREATE RAZORPAY ORDER
+    btn.textContent = 'OPENING PAYMENT...';
+
+    const razorpayResponse = await fetch(
+      'https://us-central1-just-your-type.cloudfunctions.net/createRazorpayOrder',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: totalAmount
+        })
+      }
+    );
+
+    const razorpayOrder = await razorpayResponse.json();
+
+    if (!razorpayResponse.ok || !razorpayOrder.success) {
+      throw new Error(
+        razorpayOrder.error || 'Could not create payment order.'
+      );
+    }
+
+    const paymentResult = await new Promise((resolve, reject) => {
+
+      const options = {
+        key: razorpayOrder.keyId,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: 'Just Your Type',
+        description: 'JYT T-Shirt Order',
+        order_id: razorpayOrder.orderId,
+
+        prefill: {
+          name: name,
+          contact: mobile
+        },
+
+        theme: {
+          color: '#111111'
+        },
+
+        handler: async function (response) {
+
+          try {
+
+            const verifyResponse = await fetch(
+              'https://us-central1-just-your-type.cloudfunctions.net/verifyRazorpayPayment',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(response)
+              }
+            );
+
+            const verification = await verifyResponse.json();
+
+            if (!verifyResponse.ok || !verification.verified) {
+              reject(
+                new Error(
+                  verification.error || 'Payment verification failed.'
+                )
+              );
+              return;
+            }
+
+            resolve(response);
+
+          } catch (error) {
+            reject(error);
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            reject(new Error('Payment cancelled.'));
+          }
+        }
+      };
+
+      const rzp = new Razorpay(options);
+
+      rzp.on('payment.failed', function (response) {
+        reject(
+          new Error(
+            response.error?.description || 'Payment failed.'
+          )
+        );
+      });
+
+      rzp.open();
+    });
+
+    btn.textContent = 'SAVING ORDER...';
 
     btn.textContent = 'SUBMITTING ORDER...';
 
@@ -287,7 +385,7 @@ const storagePath =
 
       status: 'NEW',
 
-      paymentStatus: 'PENDING',
+      paymentStatus: 'PAID',
 
       userId: user.uid,
 
@@ -309,6 +407,12 @@ const storagePath =
 
       notes: notes,
 
+      payment: {
+  razorpayOrderId: paymentResult.razorpay_order_id,
+  razorpayPaymentId: paymentResult.razorpay_payment_id,
+  razorpaySignature: paymentResult.razorpay_signature
+},
+      
       design: {
         fileName: file.name,
         contentType: file.type,
