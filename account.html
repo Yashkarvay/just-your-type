@@ -241,7 +241,31 @@ a{
 
     </div>
 
+<div class="card">
+  <h2>JYT REFERRAL</h2>
 
+  <p class="muted">
+    Share your code. Your friend gets ₹50 OFF on 3+ units.
+  </p>
+
+  <label>Your Referral Code</label>
+
+  <div class="btn-row">
+    <input id="myReferralCode" readonly>
+    <button class="gold" onclick="copyReferralCode()">
+      COPY
+    </button>
+  </div>
+
+  <h3>🪙 JYT Coins: <span id="myCoins">0</span></h3>
+
+  <p class="muted">
+    100 Coins = ₹50 OFF voucher
+  </p>
+
+  <div id="referralMsg"></div>
+</div>
+    
     <!-- CUSTOMER DESIGN UPLOAD -->
     <div class="card">
 
@@ -344,7 +368,8 @@ auth.onAuthStateChanged(user => {
 
     loadOrders(user.uid);
     loadMyDesigns(user.uid);
-
+    loadReferralData(user.uid);
+ 
   }else{
 
     document.getElementById("authBox").classList.remove("hidden");
@@ -378,7 +403,23 @@ async function register(){
 
   try{
 
-    await auth.createUserWithEmailAndPassword(email,password);
+ const cred = await auth.createUserWithEmailAndPassword(
+  email,
+  password
+);
+
+const user = cred.user;
+
+const referralCode =
+  "JYT" +
+  Math.random().toString(36).substring(2, 8).toUpperCase();
+
+await db.collection("users").doc(user.uid).set({
+  email: email,
+  referralCode: referralCode,
+  coins: 0,
+  createdAt: firebase.firestore.FieldValue.serverTimestamp()
+});
 
     msg.className = "success";
     msg.textContent = "Account created successfully.";
