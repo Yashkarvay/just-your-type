@@ -478,6 +478,30 @@ const storagePath =
         firebase.firestore.FieldValue.serverTimestamp()
     });
 
+   // Give referral reward after successful payment
+if (
+  window.appliedDiscount &&
+  window.appliedDiscount.type === "referral" &&
+  window.appliedDiscount.referrerId
+) {
+  try {
+    await fetch(
+      "https://us-central1-just-your-type.cloudfunctions.net/rewardReferral",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          orderId: orderId
+        })
+      }
+    );
+  } catch (error) {
+    console.error("Referral reward error:", error);
+  }
+}
+   
     document.querySelector('#customModal form').reset();
 
     document.getElementById(
